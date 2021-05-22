@@ -3,7 +3,7 @@ let toDoTasks=[];
 
 // classes ********************************************
 class Database {
-    constructor(name, version,){
+    constructor(name, version,fields){
         this.name = name;
         this.version = version;
         this.indexedDB = {};
@@ -11,6 +11,12 @@ class Database {
         this.database.onsuccess = () => {
             console.log(`Databse ${name}: created successfully`);
             this.indexedDB = this.database.result;
+        }
+        this.database.onupgradeneeded = (event) => {
+            const instance = event.target.result;
+            const objectStore = instance.createObjectStore(name, {keyPath: 'key', autoIncrement: true});
+            if(typeof field == 'string') fields = field.split(',').map(s=>s.trim());
+            for (let field of fields){objectStore.createIndex(field, field);}
         }
     }
 }
@@ -29,7 +35,7 @@ function handleSubmit(title){
 }
 // indexedDB *********************************************
 document.addEventListener('DOMContentLoaded', ()=>{
-    const database = new Database('DBtasks', 1);
+    const database = new Database('DBtasks', 1, ['title', 'description']);
     const form = document.forms.save_task;
     form.addEventListener('submit', saveTask);
     function saveTask(event){
