@@ -28,6 +28,11 @@ class Database {
             return transaction;
         } else {throw new Error('An object expected')}
     }
+    getOpenCursor(){
+        const transaction = this.indexedDB.transaction([this.name], 'readonly');
+        const objectStore = transaction.objectStore(this.name);
+        return objectStore.openCursor();
+    }
 }
 // functions ********************************************
 function handleSubmit(title){
