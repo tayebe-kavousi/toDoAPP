@@ -25,6 +25,7 @@ class Database {
             const objectStore = transaction.objectStore(this.name);
             const request = objectStore.add(task);
             if(typeof success == 'function') request.onsuccess = success;
+            return transaction;
         } else {throw new Error('An object expected')}
     }
 }
@@ -41,20 +42,25 @@ function handleSubmit(title){
         document.getElementById('deleteAll').classList.remove('hidden');
     }
 }
-// indexedDB *********************************************
+
+
+
+
+
 document.addEventListener('DOMContentLoaded', ()=>{
-    const database = new Database('DBtasks', 1, ['title', 'description']);
+    const database = new Database('DBtasks', 1, 'title, description');
     const form = document.forms.save_task;
     form.addEventListener('submit', saveTask);
+    
     function saveTask(event){
         event.preventDefault();
         const title = document.getElementById('input').value;
-        console.log(title);
         const timeStamp = Date.now();
         const task = {title, timeStamp};
         toDoTasks.push(task);
+        const transaction = database.persist(task, () => form.reset());
+        transaction.oncomplete = () => {console.log("Task added successfully!");}
         handleSubmit(title);
-        input.value = '';
     }
 
 })
