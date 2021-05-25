@@ -1,22 +1,24 @@
-// variables ******************************************
-let toDoTasks=[];
-
-// classes ********************************************
+// Database class
 class Database {
-    constructor(name, version,fields){
+    constructor(name, version){
         this.name = name;
         this.version = version;
         this.indexedDB = {};
         this.database = window.indexedDB.open(name, version);
+    }  
+    init(fields, successCallback){
         this.database.onsuccess = () => {
-            console.log(`Databse ${name}: created successfully`);
+            console.log(`Databse ${this.name}: created successfully`);
             this.indexedDB = this.database.result;
+            if(typeof successCallback== 'function') successCallback();
         }
-        this.database.onupgradeneeded = (event) => {
+        this.database.onupgradeneeded = event => {
             const instance = event.target.result;
-            const objectStore = instance.createObjectStore(name, {keyPath: 'key', autoIncrement: true});
-            if(typeof field == 'string') fields = field.split(',').map(s=>s.trim());
-            for (let field of fields){objectStore.createIndex(field, field);}
+            const objectStore = instance.createObjectStore(this.name, {keyPath: 'key', autoIncrement: true});
+            if (typeof fields == 'string') fields = fields.split(',').map(s => s.trim());
+            for (let field of fields){
+                objectStore.createIndex(field, field);
+            }
         }
     }
     persist(task, success){
@@ -28,33 +30,19 @@ class Database {
             return transaction;
         } else {throw new Error('An object expected')}
     }
-    getOpenCursor(){
-        const transaction = this.indexedDB.transaction([this.name], 'readonly');
+    getOpenCursor() {
+        const transaction = this.indexedDB.transaction([this.name], "readonly");
         const objectStore = transaction.objectStore(this.name);
         return objectStore.openCursor();
     }
 }
-// functions ********************************************
-function handleSubmit(title){
-    if (title == '')return;
-    let elem = document.createElement('LI');
-    elem.innerHTML = title;
-    elem.classList.add("toDoItem");
-    let ul = document.getElementById('toDoList')
-    ul.append(elem);
-    document.getElementById('placeHolderToDo').classList.add('hidden');
-    if(toDoTasks.length > 1){
-        document.getElementById('deleteAll').classList.remove('hidden');
-    }
-}
 
-
-
-
+//**************************//
 
 document.addEventListener('DOMContentLoaded', ()=>{
     const database = new Database('DBtasks', 1, 'title, description');
     const form = document.forms.save_task;
+    const tasksContainer = document.querySelector("#task-container");
     form.addEventListener('submit', saveTask);
     
     function saveTask(event){
@@ -62,10 +50,46 @@ document.addEventListener('DOMContentLoaded', ()=>{
         const title = document.getElementById('input').value;
         const timeStamp = Date.now();
         const task = {title, timeStamp};
-        toDoTasks.push(task);
         const transaction = database.persist(task, () => form.reset());
-        transaction.oncomplete = () => {console.log("Task added successfully!");}
-        handleSubmit(title);
+        transaction.oncomplete = () => {
+            console.log("Task added successfully!");
+            showTasks();
+        }
     }
 
+    function showTasks(){
+        // Leave the div empty
+        while (tasksContainer.firstChild) tasksContainer.removeChild(tasksContainer.firstChild);
+
+        const request = database.getOpenCursor();
+        request.onsuccess = event => {
+            const cursor = event.target.result;
+            if (cursor){
+                const {title, timeStamp} = cursor.value;
+            // Step 1
+                const message = document.createElement("article");
+                //message.classList.add("message", "is-primary");
+            // Step 2
+                message.innerHTML = `
+                <div class="message-header">
+                    <p>${title}</p>
+                </div>
+                <div class="message-body">
+                    <p>${timeStamp}</p>
+                </div>
+                `;
+            // Step 3
+                tasksContainer.appendChild(message);
+                // step 2: Advance to the next record
+                cursor.continue();
+            } else {
+                // There is no data or we have come to the end of the table
+                if (!tasksContainer.firstChild) {
+                    const text = document.createElement("p");
+                    text.textContent = "There are no tasks to be shown.";
+                    tasksContainer.appendChild(text);
+                }
+            }
+        }   
+    }
 })
