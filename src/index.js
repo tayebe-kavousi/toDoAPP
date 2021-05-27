@@ -72,8 +72,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
         request.onsuccess = event => {
             const cursor = event.target.result;
             if (cursor){
-                const {title, timeStamp} = cursor.value;
-                console.log(`title: ${title}, timeStamp: ${timeStamp}`);
+                const {key, title, timeStamp} = cursor.value;
             // Step 1
                 const message = document.createElement("article");
                 message.setAttribute('data-id', key);
@@ -87,8 +86,16 @@ document.addEventListener('DOMContentLoaded', ()=>{
                 </div>
                 `;
             // Step 3
-                tasksContainer.appendChild(message);
-                // step 2: Advance to the next record
+            // step 2: Advance to the next record
+            const deleteButton = document.createElement("BUTTON");
+            deleteButton.innerHTML = 'delete'
+            deleteButton.classList.add('trash');
+            deleteButton.setAttribute("aria-label", "delete");
+            deleteButton.onclick = removeTask;
+            message.firstChild.nextSibling.appendChild(deleteButton);
+            
+            tasksContainer.appendChild(message);
+
                 cursor.continue();
             } else {
                 // There is no data or we have come to the end of the table
@@ -99,5 +106,24 @@ document.addEventListener('DOMContentLoaded', ()=>{
                 }
             }
         }   
+    }
+
+    function removeTask(event){
+        const header = event.target.parentElement;
+        const task = header.parentElement;
+        const id = Number(task.getAttribute("data-id"));
+        database.delete(id, ()=>{// Step 1
+            tasksContainer.removeChild(task);
+        
+            // Step 2
+            if (!tasksContainer.firstChild) {
+              const text = document.createElement("p");
+              text.textContent = "There are no tasks to be shown.";
+              tasksContainer.appendChild(text);
+            }
+        
+            // Optional Step 3: Console log for debugging purposes
+            console.log(`Task with id ${id} deleted successfully.`);
+        });
     }
 })
