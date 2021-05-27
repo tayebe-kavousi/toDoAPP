@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
                 console.log(`title: ${title}, timeStamp: ${timeStamp}`);
             // Step 1
                 const message = document.createElement("article");
-                //message.classList.add("message", "is-primary");
+                message.setAttribute('data-id', key);
             // Step 2
                 message.innerHTML = `
                 <div class="message-header">
