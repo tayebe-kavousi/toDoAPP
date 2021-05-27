@@ -66,6 +66,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
             const cursor = event.target.result;
             if (cursor){
                 const {title, timeStamp} = cursor.value;
+<<<<<<< HEAD
+=======
+                console.log(`title: ${title}, timeStamp: ${timeStamp}`);
+>>>>>>> 390799bf0c8ed63372693d00d3281d634100dcdb
             // Step 1
                 const message = document.createElement("article");
                 //message.classList.add("message", "is-primary");
