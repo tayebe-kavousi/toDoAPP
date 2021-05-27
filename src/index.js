@@ -35,12 +35,19 @@ class Database {
         const objectStore = transaction.objectStore(this.name);
         return objectStore.openCursor();
     }
+    delete(id, success){
+        const transaction = this.indexedDB.transaction([this.name], 'readwrite');
+        const objectStore = transaction.objectStore(this.name);
+        const request = objectStore.delete(id);
+        if(typeof success == 'function'){transaction.oncomplete = success();}
+    }
 }
 
 //**************************//
 
 document.addEventListener('DOMContentLoaded', ()=>{
-    const database = new Database('DBtasks', 1, 'title, description');
+    const database = new Database('DBtasks', 1)
+    database.init('title, description', ()=>showTasks());
     const form = document.forms.save_task;
     const tasksContainer = document.querySelector("#task-container");
     form.addEventListener('submit', saveTask);
@@ -66,10 +73,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
             const cursor = event.target.result;
             if (cursor){
                 const {title, timeStamp} = cursor.value;
-<<<<<<< HEAD
-=======
                 console.log(`title: ${title}, timeStamp: ${timeStamp}`);
->>>>>>> 390799bf0c8ed63372693d00d3281d634100dcdb
             // Step 1
                 const message = document.createElement("article");
                 //message.classList.add("message", "is-primary");
