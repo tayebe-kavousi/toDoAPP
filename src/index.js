@@ -1,49 +1,5 @@
-// Database class
-class Database {
-    constructor(name, version){
-        this.name = name;
-        this.version = version;
-        this.indexedDB = {};
-        this.database = window.indexedDB.open(name, version);
-    }  
-    init(fields, successCallback){
-        this.database.onsuccess = () => {
-            console.log(`Databse ${this.name}: created successfully`);
-            this.indexedDB = this.database.result;
-            if(typeof successCallback== 'function') successCallback();
-        }
-        this.database.onupgradeneeded = event => {
-            const instance = event.target.result;
-            const objectStore = instance.createObjectStore(this.name, {keyPath: 'key', autoIncrement: true});
-            if (typeof fields == 'string') fields = fields.split(',').map(s => s.trim());
-            for (let field of fields){
-                objectStore.createIndex(field, field);
-            }
-        }
-    }
-    persist(task, success){
-        if(typeof task == 'object'){
-            const transaction = this.indexedDB.transaction([this.name], 'readwrite');
-            const objectStore = transaction.objectStore(this.name);
-            const request = objectStore.add(task);
-            if(typeof success == 'function') request.onsuccess = success;
-            return transaction;
-        } else {throw new Error('An object expected')}
-    }
-    getOpenCursor() {
-        const transaction = this.indexedDB.transaction([this.name], "readonly");
-        const objectStore = transaction.objectStore(this.name);
-        return objectStore.openCursor();
-    }
-    delete(id, success){
-        const transaction = this.indexedDB.transaction([this.name], 'readwrite');
-        const objectStore = transaction.objectStore(this.name);
-        const request = objectStore.delete(id);
-        if(typeof success == 'function'){transaction.oncomplete = success();}
-    }
-}
+import Database from "./database/database.js";
 
-//**************************//
 
 document.addEventListener('DOMContentLoaded', ()=>{
     const database = new Database('DBtasks', 1)
@@ -65,18 +21,14 @@ document.addEventListener('DOMContentLoaded', ()=>{
     }
 
     function showTasks(){
-        // Leave the div empty
         while (tasksContainer.firstChild) tasksContainer.removeChild(tasksContainer.firstChild);
-
         const request = database.getOpenCursor();
         request.onsuccess = event => {
             const cursor = event.target.result;
             if (cursor){
                 const {key, title, timeStamp} = cursor.value;
-            // Step 1
                 const message = document.createElement("article");
                 message.setAttribute('data-id', key);
-            // Step 2
                 message.innerHTML = `
                 <div class="message-header">
                     <p>${title}</p>
@@ -85,20 +37,23 @@ document.addEventListener('DOMContentLoaded', ()=>{
                     <p>${timeStamp}</p>
                 </div>
                 `;
-            // Step 3
-            // step 2: Advance to the next record
-            const deleteButton = document.createElement("BUTTON");
-            deleteButton.innerHTML = 'delete'
-            deleteButton.classList.add('trash');
-            deleteButton.setAttribute("aria-label", "delete");
-            deleteButton.onclick = removeTask;
-            message.firstChild.nextSibling.appendChild(deleteButton);
-            
-            tasksContainer.appendChild(message);
+                const deleteButton = document.createElement("BUTTON");
+                deleteButton.innerHTML = 'delete'
+                deleteButton.classList.add('trash');
+                deleteButton.setAttribute("aria-label", "delete");
+                deleteButton.onclick = removeTask;
+                message.firstChild.nextSibling.appendChild(deleteButton);
+
+                const doingButton = document.createElement("BUTTON");
+                doingButton.innerHTML = 'Start to do'
+                doingButton.classList.add('start');
+                doingButton.onclick = doingTask;
+                message.firstChild.nextSibling.appendChild(doingButton);
+
+                tasksContainer.appendChild(message);
 
                 cursor.continue();
             } else {
-                // There is no data or we have come to the end of the table
                 if (!tasksContainer.firstChild) {
                     const text = document.createElement("p");
                     text.textContent = "There are no tasks to be shown.";
@@ -114,16 +69,16 @@ document.addEventListener('DOMContentLoaded', ()=>{
         const id = Number(task.getAttribute("data-id"));
         database.delete(id, ()=>{// Step 1
             tasksContainer.removeChild(task);
-        
-            // Step 2
             if (!tasksContainer.firstChild) {
               const text = document.createElement("p");
               text.textContent = "There are no tasks to be shown.";
               tasksContainer.appendChild(text);
             }
-        
-            // Optional Step 3: Console log for debugging purposes
-            console.log(`Task with id ${id} deleted successfully.`);
+        console.log(`Task with id ${id} deleted successfully.`);
         });
+    }
+
+    function doingTask(){
+        console.log('doing task');
     }
 })
